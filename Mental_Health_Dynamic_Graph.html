@@ -1,0 +1,468 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 750px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 750px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "digital", "label": "digital", "shape": "dot", "size": 10, "title": "Concept: digital\nCluster: 0", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "interv", "label": "interv", "shape": "dot", "size": 10, "title": "Concept: interv\nCluster: 0", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "entions", "label": "entions", "shape": "dot", "size": 10, "title": "Concept: entions\nCluster: 0", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ve", "label": "ve", "shape": "dot", "size": 10, "title": "Concept: ve\nCluster: 0", "value": 7}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "jmir", "label": "jmir", "shape": "dot", "size": 10, "title": "Concept: jmir\nCluster: 0", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ention", "label": "ention", "shape": "dot", "size": 10, "title": "Concept: ention\nCluster: 0", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "cross", "label": "cross", "shape": "dot", "size": 10, "title": "Concept: cross\nCluster: 1", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "2020", "label": "2020", "shape": "dot", "size": 10, "title": "Concept: 2020\nCluster: 1", "value": 32}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "covid", "label": "covid", "shape": "dot", "size": 10, "title": "Concept: covid\nCluster: 1", "value": 28}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sectional", "label": "sectional", "shape": "dot", "size": 10, "title": "Concept: sectional\nCluster: 1", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "barriers", "label": "barriers", "shape": "dot", "size": 10, "title": "Concept: barriers\nCluster: 19", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "help", "label": "help", "shape": "dot", "size": 10, "title": "Concept: help\nCluster: 19", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "seeking", "label": "seeking", "shape": "dot", "size": 10, "title": "Concept: seeking\nCluster: 19", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "facilitators", "label": "facilitators", "shape": "dot", "size": 10, "title": "Concept: facilitators\nCluster: 19", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "young", "label": "young", "shape": "dot", "size": 10, "title": "Concept: young\nCluster: 19", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "barrier", "label": "barrier", "shape": "dot", "size": 10, "title": "Concept: barrier\nCluster: 19", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "facilitator", "label": "facilitator", "shape": "dot", "size": 10, "title": "Concept: facilitator\nCluster: 19", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "armed", "label": "armed", "shape": "dot", "size": 10, "title": "Concept: armed\nCluster: 3", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "refugees", "label": "refugees", "shape": "dot", "size": 10, "title": "Concept: refugees\nCluster: 3", "value": 8}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "prevalence", "label": "prevalence", "shape": "dot", "size": 10, "title": "Concept: prevalence\nCluster: 1", "value": 20}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "heatwaves", "label": "heatwaves", "shape": "dot", "size": 10, "title": "Concept: heatwaves\nCluster: 4", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "temperatures", "label": "temperatures", "shape": "dot", "size": 10, "title": "Concept: temperatures\nCluster: 4", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "temperature", "label": "temperature", "shape": "dot", "size": 10, "title": "Concept: temperature\nCluster: 4", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ambient", "label": "ambient", "shape": "dot", "size": 10, "title": "Concept: ambient\nCluster: 4", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "migration", "label": "migration", "shape": "dot", "size": 10, "title": "Concept: migration\nCluster: 3", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "migrants", "label": "migrants", "shape": "dot", "size": 10, "title": "Concept: migrants\nCluster: 3", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "refugee", "label": "refugee", "shape": "dot", "size": 10, "title": "Concept: refugee\nCluster: 3", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ptsd", "label": "ptsd", "shape": "dot", "size": 10, "title": "Concept: ptsd\nCluster: 3", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "child", "label": "child", "shape": "dot", "size": 10, "title": "Concept: child\nCluster: 1", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "children", "label": "children", "shape": "dot", "size": 10, "title": "Concept: children\nCluster: 1", "value": 11}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "pandemic", "label": "pandemic", "shape": "dot", "size": 10, "title": "Concept: pandemic\nCluster: 1", "value": 22}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\ufb01ed", "label": "\ufb01ed", "shape": "dot", "size": 10, "title": "Concept: \ufb01ed\nCluster: 6", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "signi", "label": "signi", "shape": "dot", "size": 10, "title": "Concept: signi\nCluster: 6", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "isolated", "label": "isolated", "shape": "dot", "size": 10, "title": "Concept: isolated\nCluster: 7", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "isolation", "label": "isolation", "shape": "dot", "size": 10, "title": "Concept: isolation\nCluster: 7", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "injury", "label": "injury", "shape": "dot", "size": 10, "title": "Concept: injury\nCluster: 8", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sports", "label": "sports", "shape": "dot", "size": 10, "title": "Concept: sports\nCluster: 8", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "athletic", "label": "athletic", "shape": "dot", "size": 10, "title": "Concept: athletic\nCluster: 8", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "athletes", "label": "athletes", "shape": "dot", "size": 10, "title": "Concept: athletes\nCluster: 8", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sport", "label": "sport", "shape": "dot", "size": 10, "title": "Concept: sport\nCluster: 8", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "elite", "label": "elite", "shape": "dot", "size": 10, "title": "Concept: elite\nCluster: 8", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "athlete", "label": "athlete", "shape": "dot", "size": 10, "title": "Concept: athlete\nCluster: 8", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "college", "label": "college", "shape": "dot", "size": 10, "title": "Concept: college\nCluster: 9", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "students", "label": "students", "shape": "dot", "size": 10, "title": "Concept: students\nCluster: 9", "value": 16}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "hospital", "label": "hospital", "shape": "dot", "size": 10, "title": "Concept: hospital\nCluster: 1", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "hcws", "label": "hcws", "shape": "dot", "size": 10, "title": "Concept: hcws\nCluster: 1", "value": 14}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "mhl", "label": "mhl", "shape": "dot", "size": 10, "title": "Concept: mhl\nCluster: 19", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "literacy", "label": "literacy", "shape": "dot", "size": 10, "title": "Concept: literacy\nCluster: 19", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "positi", "label": "positi", "shape": "dot", "size": 10, "title": "Concept: positi\nCluster: 0", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "women", "label": "women", "shape": "dot", "size": 10, "title": "Concept: women\nCluster: 11", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "pregnant", "label": "pregnant", "shape": "dot", "size": 10, "title": "Concept: pregnant\nCluster: 11", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "postpartum", "label": "postpartum", "shape": "dot", "size": 10, "title": "Concept: postpartum\nCluster: 11", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "pregnancy", "label": "pregnancy", "shape": "dot", "size": 10, "title": "Concept: pregnancy\nCluster: 11", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "2021", "label": "2021", "shape": "dot", "size": 10, "title": "Concept: 2021\nCluster: 1", "value": 15}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "anxiety", "label": "anxiety", "shape": "dot", "size": 10, "title": "Concept: anxiety\nCluster: 1", "value": 15}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sleep", "label": "sleep", "shape": "dot", "size": 10, "title": "Concept: sleep\nCluster: 1", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ci", "label": "ci", "shape": "dot", "size": 10, "title": "Concept: ci\nCluster: 1", "value": 7}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "burnout", "label": "burnout", "shape": "dot", "size": 10, "title": "Concept: burnout\nCluster: 1", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "2022", "label": "2022", "shape": "dot", "size": 10, "title": "Concept: 2022\nCluster: 9", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "2023", "label": "2023", "shape": "dot", "size": 10, "title": "Concept: 2023\nCluster: 9", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "crossref", "label": "crossref", "shape": "dot", "size": 10, "title": "Concept: crossref\nCluster: 20", "value": 8}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "adolescents", "label": "adolescents", "shape": "dot", "size": 10, "title": "Concept: adolescents\nCluster: 1", "value": 11}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "student", "label": "student", "shape": "dot", "size": 10, "title": "Concept: student\nCluster: 9", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "workers", "label": "workers", "shape": "dot", "size": 10, "title": "Concept: workers\nCluster: 1", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "na", "label": "na", "shape": "dot", "size": 10, "title": "Concept: na\nCluster: 1", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "d0", "label": "d0", "shape": "dot", "size": 10, "title": "Concept: d0\nCluster: 1", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sars", "label": "sars", "shape": "dot", "size": 10, "title": "Concept: sars\nCluster: 1", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "interventions", "label": "interventions", "shape": "dot", "size": 10, "title": "Concept: interventions\nCluster: 13", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "95", "label": "95", "shape": "dot", "size": 10, "title": "Concept: 95\nCluster: 1", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "china", "label": "china", "shape": "dot", "size": 10, "title": "Concept: china\nCluster: 1", "value": 6}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "symptoms", "label": "symptoms", "shape": "dot", "size": 10, "title": "Concept: symptoms\nCluster: 1", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "infection", "label": "infection", "shape": "dot", "size": 10, "title": "Concept: infection\nCluster: 1", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "wiley", "label": "wiley", "shape": "dot", "size": 10, "title": "Concept: wiley\nCluster: 9", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "onlinelibrary", "label": "onlinelibrary", "shape": "dot", "size": 10, "title": "Concept: onlinelibrary\nCluster: 9", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "nurses", "label": "nurses", "shape": "dot", "size": 10, "title": "Concept: nurses\nCluster: 1", "value": 5}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "activity", "label": "activity", "shape": "dot", "size": 10, "title": "Concept: activity\nCluster: 16", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "physical", "label": "physical", "shape": "dot", "size": 10, "title": "Concept: physical\nCluster: 16", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "client", "label": "client", "shape": "dot", "size": 10, "title": "Concept: client\nCluster: 12", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "clients", "label": "clients", "shape": "dot", "size": 10, "title": "Concept: clients\nCluster: 12", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "smd", "label": "smd", "shape": "dot", "size": 10, "title": "Concept: smd\nCluster: 13", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "rcts", "label": "rcts", "shape": "dot", "size": 10, "title": "Concept: rcts\nCluster: 13", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "media", "label": "media", "shape": "dot", "size": 10, "title": "Concept: media\nCluster: 14", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "screen", "label": "screen", "shape": "dot", "size": 10, "title": "Concept: screen\nCluster: 14", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "internet", "label": "internet", "shape": "dot", "size": 10, "title": "Concept: internet\nCluster: 9", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "user", "label": "user", "shape": "dot", "size": 10, "title": "Concept: user\nCluster: 9", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "stigma", "label": "stigma", "shape": "dot", "size": 10, "title": "Concept: stigma\nCluster: 19", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "problems", "label": "problems", "shape": "dot", "size": 10, "title": "Concept: problems\nCluster: 9", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "wellbeing", "label": "wellbeing", "shape": "dot", "size": 10, "title": "Concept: wellbeing\nCluster: 9", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "male", "label": "male", "shape": "dot", "size": 10, "title": "Concept: male\nCluster: 9", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "americans", "label": "americans", "shape": "dot", "size": 10, "title": "Concept: americans\nCluster: 17", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "whites", "label": "whites", "shape": "dot", "size": 10, "title": "Concept: whites\nCluster: 17", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "african", "label": "african", "shape": "dot", "size": 10, "title": "Concept: african\nCluster: 17", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "virtual", "label": "virtual", "shape": "dot", "size": 10, "title": "Concept: virtual\nCluster: 18", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "vr", "label": "vr", "shape": "dot", "size": 10, "title": "Concept: vr\nCluster: 18", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "immersive", "label": "immersive", "shape": "dot", "size": 10, "title": "Concept: immersive\nCluster: 18", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "reality", "label": "reality", "shape": "dot", "size": 10, "title": "Concept: reality\nCluster: 18", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "library", "label": "library", "shape": "dot", "size": 10, "title": "Concept: library\nCluster: 9", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "users", "label": "users", "shape": "dot", "size": 10, "title": "Concept: users\nCluster: 9", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "traumatic", "label": "traumatic", "shape": "dot", "size": 10, "title": "Concept: traumatic\nCluster: 20", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "stress", "label": "stress", "shape": "dot", "size": 10, "title": "Concept: stress\nCluster: 20", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sex", "label": "sex", "shape": "dot", "size": 10, "title": "Concept: sex\nCluster: 21", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "men", "label": "men", "shape": "dot", "size": 10, "title": "Concept: men\nCluster: 21", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "asylum", "label": "asylum", "shape": "dot", "size": 10, "title": "Concept: asylum\nCluster: 3", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "illness", "label": "illness", "shape": "dot", "size": 10, "title": "Concept: illness\nCluster: 19", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "\ufb02ourishing", "label": "\ufb02ourishing", "shape": "dot", "size": 10, "title": "Concept: \ufb02ourishing\nCluster: 19", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "keyes", "label": "keyes", "shape": "dot", "size": 10, "title": "Concept: keyes\nCluster: 19", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "corrigan", "label": "corrigan", "shape": "dot", "size": 10, "title": "Concept: corrigan\nCluster: 19", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "urban", "label": "urban", "shape": "dot", "size": 10, "title": "Concept: urban\nCluster: 5", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "rural", "label": "rural", "shape": "dot", "size": 10, "title": "Concept: rural\nCluster: 5", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sdq", "label": "sdq", "shape": "dot", "size": 10, "title": "Concept: sdq\nCluster: 5", "value": 4}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "prosocial", "label": "prosocial", "shape": "dot", "size": 10, "title": "Concept: prosocial\nCluster: 1", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "sts", "label": "sts", "shape": "dot", "size": 10, "title": "Concept: sts\nCluster: 23", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "trauma", "label": "trauma", "shape": "dot", "size": 10, "title": "Concept: trauma\nCluster: 23", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "medline", "label": "medline", "shape": "dot", "size": 10, "title": "Concept: medline\nCluster: 0", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "patients", "label": "patients", "shape": "dot", "size": 10, "title": "Concept: patients\nCluster: 10", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "rates", "label": "rates", "shape": "dot", "size": 10, "title": "Concept: rates\nCluster: 1", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "war", "label": "war", "shape": "dot", "size": 10, "title": "Concept: war\nCluster: 3", "value": 3}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "schools", "label": "schools", "shape": "dot", "size": 10, "title": "Concept: schools\nCluster: 5", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "school", "label": "school", "shape": "dot", "size": 10, "title": "Concept: school\nCluster: 5", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "intervention", "label": "intervention", "shape": "dot", "size": 10, "title": "Concept: intervention\nCluster: 5", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "nature", "label": "nature", "shape": "dot", "size": 10, "title": "Concept: nature\nCluster: 25", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "green", "label": "green", "shape": "dot", "size": 10, "title": "Concept: green\nCluster: 25", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "adolescent", "label": "adolescent", "shape": "dot", "size": 10, "title": "Concept: adolescent\nCluster: 1", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "resettlement", "label": "resettlement", "shape": "dot", "size": 10, "title": "Concept: resettlement\nCluster: 3", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "service", "label": "service", "shape": "dot", "size": 10, "title": "Concept: service\nCluster: 12", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "services", "label": "services", "shape": "dot", "size": 10, "title": "Concept: services\nCluster: 12", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "seclusion", "label": "seclusion", "shape": "dot", "size": 10, "title": "Concept: seclusion\nCluster: 15", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "restraint", "label": "restraint", "shape": "dot", "size": 10, "title": "Concept: restraint\nCluster: 15", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "patient", "label": "patient", "shape": "dot", "size": 10, "title": "Concept: patient\nCluster: 15", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ai", "label": "ai", "shape": "dot", "size": 10, "title": "Concept: ai\nCluster: 9", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "outbreak", "label": "outbreak", "shape": "dot", "size": 10, "title": "Concept: outbreak\nCluster: 1", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "mbi", "label": "mbi", "shape": "dot", "size": 10, "title": "Concept: mbi\nCluster: 22", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "training", "label": "training", "shape": "dot", "size": 10, "title": "Concept: training\nCluster: 22", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "boys", "label": "boys", "shape": "dot", "size": 10, "title": "Concept: boys\nCluster: 24", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "girls", "label": "girls", "shape": "dot", "size": 10, "title": "Concept: girls\nCluster: 24", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "adults", "label": "adults", "shape": "dot", "size": 10, "title": "Concept: adults\nCluster: 2", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "older", "label": "older", "shape": "dot", "size": 10, "title": "Concept: older\nCluster: 2", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "lockdown", "label": "lockdown", "shape": "dot", "size": 10, "title": "Concept: lockdown\nCluster: 1", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ti", "label": "ti", "shape": "dot", "size": 10, "title": "Concept: ti\nCluster: 20", "value": 2}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "psoriasis", "label": "psoriasis", "shape": "dot", "size": 10, "title": "Concept: psoriasis\nCluster: 10", "value": 1}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "cognitive", "label": "cognitive", "shape": "dot", "size": 10, "title": "Concept: cognitive\nCluster: 20", "value": 1}]);
+                  edges = new vis.DataSet([{"from": "digital", "to": "interv", "width": 2}, {"from": "digital", "to": "entions", "width": 2}, {"from": "digital", "to": "ve", "width": 2}, {"from": "digital", "to": "jmir", "width": 2}, {"from": "digital", "to": "ention", "width": 2}, {"from": "cross", "to": "2020", "width": 2}, {"from": "cross", "to": "covid", "width": 2}, {"from": "cross", "to": "sectional", "width": 2}, {"from": "barriers", "to": "help", "width": 2}, {"from": "barriers", "to": "seeking", "width": 2}, {"from": "barriers", "to": "facilitators", "width": 4}, {"from": "barriers", "to": "young", "width": 2}, {"from": "barriers", "to": "barrier", "width": 3}, {"from": "barriers", "to": "facilitator", "width": 2}, {"from": "armed", "to": "refugees", "width": 2}, {"from": "armed", "to": "prevalence", "width": 2}, {"from": "heatwaves", "to": "temperatures", "width": 2}, {"from": "heatwaves", "to": "temperature", "width": 2}, {"from": "heatwaves", "to": "ambient", "width": 2}, {"from": "migration", "to": "migrants", "width": 2}, {"from": "migration", "to": "refugees", "width": 3}, {"from": "migration", "to": "refugee", "width": 2}, {"from": "migration", "to": "ptsd", "width": 2}, {"from": "migration", "to": "prevalence", "width": 2}, {"from": "child", "to": "covid", "width": 2}, {"from": "child", "to": "children", "width": 3}, {"from": "child", "to": "2020", "width": 2}, {"from": "child", "to": "pandemic", "width": 2}, {"from": "\ufb01ed", "to": "signi", "width": 2}, {"from": "isolated", "to": "isolation", "width": 2}, {"from": "injury", "to": "sports", "width": 2}, {"from": "athletic", "to": "athletes", "width": 2}, {"from": "athletic", "to": "sport", "width": 2}, {"from": "athletic", "to": "elite", "width": 2}, {"from": "athletic", "to": "sports", "width": 2}, {"from": "athletic", "to": "athlete", "width": 2}, {"from": "college", "to": "students", "width": 5}, {"from": "college", "to": "2020", "width": 3}, {"from": "college", "to": "covid", "width": 3}, {"from": "college", "to": "pandemic", "width": 3}, {"from": "hospital", "to": "hcws", "width": 2}, {"from": "hospital", "to": "2020", "width": 2}, {"from": "mhl", "to": "literacy", "width": 2}, {"from": "positi", "to": "ve", "width": 2}, {"from": "positi", "to": "jmir", "width": 2}, {"from": "positi", "to": "interv", "width": 2}, {"from": "women", "to": "pregnant", "width": 2}, {"from": "women", "to": "postpartum", "width": 2}, {"from": "women", "to": "pregnancy", "width": 2}, {"from": "2021", "to": "covid", "width": 10}, {"from": "2021", "to": "2020", "width": 10}, {"from": "2021", "to": "anxiety", "width": 5}, {"from": "2021", "to": "prevalence", "width": 4}, {"from": "2021", "to": "sleep", "width": 3}, {"from": "2021", "to": "hcws", "width": 3}, {"from": "2021", "to": "pandemic", "width": 8}, {"from": "2021", "to": "ci", "width": 2}, {"from": "2021", "to": "students", "width": 5}, {"from": "2021", "to": "burnout", "width": 3}, {"from": "2021", "to": "2022", "width": 2}, {"from": "2021", "to": "2023", "width": 2}, {"from": "2021", "to": "crossref", "width": 3}, {"from": "2021", "to": "adolescents", "width": 2}, {"from": "2021", "to": "student", "width": 2}, {"from": "2020", "to": "workers", "width": 2}, {"from": "2020", "to": "covid", "width": 25}, {"from": "2020", "to": "pandemic", "width": 21}, {"from": "2020", "to": "sectional", "width": 2}, {"from": "2020", "to": "hcws", "width": 4}, {"from": "2020", "to": "na", "width": 2}, {"from": "2020", "to": "d0", "width": 3}, {"from": "2020", "to": "sars", "width": 3}, {"from": "2020", "to": "interventions", "width": 2}, {"from": "2020", "to": "prevalence", "width": 8}, {"from": "2020", "to": "ci", "width": 5}, {"from": "2020", "to": "95", "width": 3}, {"from": "2020", "to": "children", "width": 5}, {"from": "2020", "to": "adolescents", "width": 4}, {"from": "2020", "to": "anxiety", "width": 8}, {"from": "2020", "to": "china", "width": 3}, {"from": "2020", "to": "sleep", "width": 3}, {"from": "2020", "to": "symptoms", "width": 2}, {"from": "2020", "to": "infection", "width": 2}, {"from": "2020", "to": "students", "width": 5}, {"from": "2020", "to": "2023", "width": 2}, {"from": "2020", "to": "wiley", "width": 3}, {"from": "2020", "to": "onlinelibrary", "width": 2}, {"from": "2020", "to": "crossref", "width": 3}, {"from": "2020", "to": "nurses", "width": 2}, {"from": "2020", "to": "activity", "width": 2}, {"from": "2020", "to": "physical", "width": 2}, {"from": "client", "to": "clients", "width": 2}, {"from": "smd", "to": "interventions", "width": 2}, {"from": "smd", "to": "rcts", "width": 2}, {"from": "interv", "to": "ention", "width": 3}, {"from": "interv", "to": "ve", "width": 4}, {"from": "interv", "to": "entions", "width": 3}, {"from": "interv", "to": "jmir", "width": 4}, {"from": "media", "to": "screen", "width": 3}, {"from": "media", "to": "adolescents", "width": 3}, {"from": "internet", "to": "user", "width": 2}, {"from": "activity", "to": "physical", "width": 5}, {"from": "literacy", "to": "stigma", "width": 2}, {"from": "students", "to": "covid", "width": 4}, {"from": "students", "to": "pandemic", "width": 4}, {"from": "students", "to": "sleep", "width": 2}, {"from": "students", "to": "prevalence", "width": 2}, {"from": "students", "to": "2022", "width": 3}, {"from": "students", "to": "wiley", "width": 2}, {"from": "students", "to": "2023", "width": 2}, {"from": "students", "to": "onlinelibrary", "width": 2}, {"from": "students", "to": "anxiety", "width": 3}, {"from": "students", "to": "problems", "width": 2}, {"from": "students", "to": "student", "width": 4}, {"from": "students", "to": "wellbeing", "width": 2}, {"from": "students", "to": "male", "width": 2}, {"from": "nurses", "to": "covid", "width": 2}, {"from": "nurses", "to": "na", "width": 2}, {"from": "nurses", "to": "hcws", "width": 2}, {"from": "nurses", "to": "prevalence", "width": 2}, {"from": "americans", "to": "whites", "width": 2}, {"from": "americans", "to": "african", "width": 2}, {"from": "sectional", "to": "covid", "width": 2}, {"from": "virtual", "to": "vr", "width": 2}, {"from": "virtual", "to": "immersive", "width": 2}, {"from": "virtual", "to": "reality", "width": 2}, {"from": "pregnant", "to": "pregnancy", "width": 2}, {"from": "sport", "to": "athletes", "width": 2}, {"from": "sport", "to": "elite", "width": 3}, {"from": "sport", "to": "sports", "width": 3}, {"from": "sport", "to": "athlete", "width": 2}, {"from": "whites", "to": "african", "width": 2}, {"from": "library", "to": "wiley", "width": 4}, {"from": "library", "to": "onlinelibrary", "width": 4}, {"from": "95", "to": "covid", "width": 4}, {"from": "95", "to": "pandemic", "width": 4}, {"from": "95", "to": "prevalence", "width": 2}, {"from": "95", "to": "ci", "width": 5}, {"from": "95", "to": "hcws", "width": 2}, {"from": "users", "to": "user", "width": 2}, {"from": "traumatic", "to": "stress", "width": 2}, {"from": "sex", "to": "men", "width": 2}, {"from": "d0", "to": "hcws", "width": 2}, {"from": "d0", "to": "covid", "width": 3}, {"from": "d0", "to": "pandemic", "width": 2}, {"from": "d0", "to": "adolescents", "width": 2}, {"from": "d0", "to": "prevalence", "width": 2}, {"from": "asylum", "to": "refugees", "width": 3}, {"from": "asylum", "to": "refugee", "width": 2}, {"from": "asylum", "to": "ptsd", "width": 2}, {"from": "rcts", "to": "interventions", "width": 2}, {"from": "illness", "to": "\ufb02ourishing", "width": 2}, {"from": "illness", "to": "keyes", "width": 2}, {"from": "illness", "to": "stigma", "width": 2}, {"from": "illness", "to": "corrigan", "width": 2}, {"from": "children", "to": "adolescents", "width": 4}, {"from": "children", "to": "anxiety", "width": 2}, {"from": "children", "to": "covid", "width": 6}, {"from": "children", "to": "china", "width": 2}, {"from": "children", "to": "pandemic", "width": 5}, {"from": "children", "to": "urban", "width": 2}, {"from": "children", "to": "rural", "width": 2}, {"from": "children", "to": "sdq", "width": 2}, {"from": "children", "to": "prosocial", "width": 2}, {"from": "sts", "to": "trauma", "width": 2}, {"from": "onlinelibrary", "to": "wiley", "width": 7}, {"from": "medline", "to": "ve", "width": 2}, {"from": "student", "to": "problems", "width": 2}, {"from": "china", "to": "adolescents", "width": 2}, {"from": "china", "to": "anxiety", "width": 3}, {"from": "china", "to": "covid", "width": 3}, {"from": "china", "to": "pandemic", "width": 2}, {"from": "barrier", "to": "help", "width": 2}, {"from": "barrier", "to": "seeking", "width": 2}, {"from": "barrier", "to": "facilitators", "width": 3}, {"from": "barrier", "to": "young", "width": 2}, {"from": "barrier", "to": "facilitator", "width": 2}, {"from": "prevalence", "to": "covid", "width": 10}, {"from": "prevalence", "to": "pandemic", "width": 7}, {"from": "prevalence", "to": "ci", "width": 4}, {"from": "prevalence", "to": "patients", "width": 2}, {"from": "prevalence", "to": "anxiety", "width": 5}, {"from": "prevalence", "to": "sleep", "width": 3}, {"from": "prevalence", "to": "hcws", "width": 3}, {"from": "prevalence", "to": "rates", "width": 2}, {"from": "prevalence", "to": "na", "width": 2}, {"from": "prevalence", "to": "war", "width": 2}, {"from": "prevalence", "to": "refugees", "width": 3}, {"from": "prevalence", "to": "ptsd", "width": 2}, {"from": "schools", "to": "school", "width": 2}, {"from": "schools", "to": "intervention", "width": 2}, {"from": "nature", "to": "green", "width": 2}, {"from": "adolescent", "to": "adolescents", "width": 3}, {"from": "refugees", "to": "refugee", "width": 3}, {"from": "refugees", "to": "ptsd", "width": 3}, {"from": "refugees", "to": "war", "width": 2}, {"from": "refugees", "to": "resettlement", "width": 2}, {"from": "sports", "to": "athletes", "width": 2}, {"from": "sports", "to": "elite", "width": 3}, {"from": "sports", "to": "athlete", "width": 2}, {"from": "service", "to": "services", "width": 3}, {"from": "seclusion", "to": "restraint", "width": 2}, {"from": "seclusion", "to": "patient", "width": 2}, {"from": "help", "to": "seeking", "width": 3}, {"from": "help", "to": "facilitators", "width": 2}, {"from": "help", "to": "young", "width": 3}, {"from": "2023", "to": "ai", "width": 2}, {"from": "2023", "to": "2022", "width": 3}, {"from": "sleep", "to": "anxiety", "width": 2}, {"from": "sleep", "to": "covid", "width": 3}, {"from": "immersive", "to": "vr", "width": 2}, {"from": "immersive", "to": "reality", "width": 2}, {"from": "ci", "to": "covid", "width": 6}, {"from": "ci", "to": "pandemic", "width": 6}, {"from": "ci", "to": "hcws", "width": 3}, {"from": "\ufb02ourishing", "to": "keyes", "width": 2}, {"from": "vr", "to": "reality", "width": 2}, {"from": "outbreak", "to": "covid", "width": 2}, {"from": "outbreak", "to": "pandemic", "width": 2}, {"from": "user", "to": "ai", "width": 2}, {"from": "infection", "to": "covid", "width": 2}, {"from": "infection", "to": "anxiety", "width": 2}, {"from": "infection", "to": "sars", "width": 2}, {"from": "stigma", "to": "corrigan", "width": 2}, {"from": "stigma", "to": "seeking", "width": 2}, {"from": "ptsd", "to": "refugee", "width": 2}, {"from": "ptsd", "to": "war", "width": 2}, {"from": "ention", "to": "ve", "width": 3}, {"from": "ention", "to": "entions", "width": 3}, {"from": "ention", "to": "jmir", "width": 3}, {"from": "facilitators", "to": "seeking", "width": 2}, {"from": "facilitators", "to": "young", "width": 2}, {"from": "facilitators", "to": "facilitator", "width": 2}, {"from": "workers", "to": "covid", "width": 2}, {"from": "workers", "to": "pandemic", "width": 2}, {"from": "temperatures", "to": "temperature", "width": 2}, {"from": "temperatures", "to": "ambient", "width": 2}, {"from": "young", "to": "seeking", "width": 3}, {"from": "mbi", "to": "training", "width": 2}, {"from": "anxiety", "to": "adolescents", "width": 3}, {"from": "anxiety", "to": "covid", "width": 8}, {"from": "anxiety", "to": "sars", "width": 2}, {"from": "anxiety", "to": "pandemic", "width": 6}, {"from": "anxiety", "to": "hcws", "width": 2}, {"from": "anxiety", "to": "patients", "width": 2}, {"from": "anxiety", "to": "crossref", "width": 2}, {"from": "boys", "to": "girls", "width": 2}, {"from": "clients", "to": "services", "width": 2}, {"from": "sdq", "to": "urban", "width": 2}, {"from": "sdq", "to": "rural", "width": 2}, {"from": "sdq", "to": "school", "width": 2}, {"from": "burnout", "to": "hcws", "width": 2}, {"from": "burnout", "to": "covid", "width": 2}, {"from": "burnout", "to": "pandemic", "width": 2}, {"from": "hcws", "to": "covid", "width": 5}, {"from": "hcws", "to": "na", "width": 2}, {"from": "hcws", "to": "sars", "width": 2}, {"from": "hcws", "to": "pandemic", "width": 5}, {"from": "sars", "to": "covid", "width": 2}, {"from": "patient", "to": "restraint", "width": 2}, {"from": "adults", "to": "older", "width": 2}, {"from": "covid", "to": "pandemic", "width": 25}, {"from": "covid", "to": "na", "width": 3}, {"from": "covid", "to": "adolescents", "width": 5}, {"from": "covid", "to": "symptoms", "width": 2}, {"from": "covid", "to": "lockdown", "width": 2}, {"from": "covid", "to": "crossref", "width": 2}, {"from": "rural", "to": "urban", "width": 2}, {"from": "na", "to": "pandemic", "width": 2}, {"from": "ambient", "to": "temperature", "width": 2}, {"from": "resettlement", "to": "refugee", "width": 2}, {"from": "ti", "to": "crossref", "width": 2}, {"from": "ti", "to": "stress", "width": 2}, {"from": "pandemic", "to": "symptoms", "width": 2}, {"from": "pandemic", "to": "lockdown", "width": 2}, {"from": "pandemic", "to": "crossref", "width": 2}, {"from": "pandemic", "to": "adolescents", "width": 4}, {"from": "athlete", "to": "athletes", "width": 2}, {"from": "athlete", "to": "elite", "width": 2}, {"from": "ve", "to": "entions", "width": 3}, {"from": "ve", "to": "jmir", "width": 4}, {"from": "elite", "to": "athletes", "width": 2}, {"from": "psoriasis", "to": "patients", "width": 2}, {"from": "crossref", "to": "adolescents", "width": 2}, {"from": "crossref", "to": "stress", "width": 3}, {"from": "stress", "to": "cognitive", "width": 2}, {"from": "jmir", "to": "entions", "width": 3}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true,
+        "filter": [
+            "physics"
+        ]
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "forceAtlas2Based": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.01,
+            "damping": 0.4,
+            "gravitationalConstant": -50,
+            "springConstant": 0.08,
+            "springLength": 100
+        },
+        "solver": "forceAtlas2Based",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
