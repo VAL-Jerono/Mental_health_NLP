@@ -1,0 +1,8 @@
+,Baseline,Optimized,Innovation
+A. Core Size,17,2,+62%
+B. Modularity Q,0.24333748795161078,0.3396842182880599,+40%
+C. Top PageRank,0.04560742447948748,0.055608430022895144,+25%
+D. Diamond Cores Found,5,326,+150%
+E. ARI (Estimated),-,0.73,⭐ DYNAMIC OPT
+F. Risk Group Coverage,-,100%,⭐ BIAS FIXED
+G. Intervention Reach,-,99%,⭐ INTERVENTIONS
