@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 850px;
+                 background-color: #1a1a1a;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "resilience", "label": "resilience", "shape": "dot", "size": 30, "title": " Symptom: resilience\n Spectral Cluster: C1/7\n Connections: 5\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "isolation", "label": "isolation", "shape": "dot", "size": 18, "title": " Symptom: isolation\n Spectral Cluster: C1/7\n Connections: 3\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "fear", "label": "fear", "shape": "dot", "size": 36, "title": " Symptom: fear\n Spectral Cluster: C7/7\n Connections: 6\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "attempt", "label": "attempt", "shape": "dot", "size": 15, "title": " Symptom: attempt\n Spectral Cluster: C7/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "instrument", "label": "instrument", "shape": "dot", "size": 18, "title": " Symptom: instrument\n Spectral Cluster: C7/7\n Connections: 3\n Quality: -0.986"}, {"borderWidth": 2, "color": "#4ECDC4", "font": {"color": "white"}, "id": "longitudinal", "label": "longitudinal", "shape": "dot", "size": 15, "title": " Symptom: longitudinal\n Spectral Cluster: C2/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#BB8FCE", "font": {"color": "white"}, "id": "white", "label": "white", "shape": "dot", "size": 15, "title": " Symptom: white\n Spectral Cluster: C5/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "counseling", "label": "counseling", "shape": "dot", "size": 15, "title": " Symptom: counseling\n Spectral Cluster: C1/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "panic", "label": "panic", "shape": "dot", "size": 15, "title": " Symptom: panic\n Spectral Cluster: C7/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#F7DC6F", "font": {"color": "white"}, "id": "type", "label": "type", "shape": "dot", "size": 18, "title": " Symptom: type\n Spectral Cluster: C4/7\n Connections: 3\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "therapy", "label": "therapy", "shape": "dot", "size": 54, "title": " Symptom: therapy\n Spectral Cluster: C7/7\n Connections: 9\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "characteristic", "label": "characteristic", "shape": "dot", "size": 36, "title": " Symptom: characteristic\n Spectral Cluster: C7/7\n Connections: 6\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "adjustment", "label": "adjustment", "shape": "dot", "size": 15, "title": " Symptom: adjustment\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "policy", "label": "policy", "shape": "dot", "size": 30, "title": " Symptom: policy\n Spectral Cluster: C1/7\n Connections: 5\n Quality: -0.986"}, {"borderWidth": 2, "color": "#4ECDC4", "font": {"color": "white"}, "id": "swedish", "label": "swedish", "shape": "dot", "size": 15, "title": " Symptom: swedish\n Spectral Cluster: C2/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#45B7D1", "font": {"color": "white"}, "id": "psycinfo", "label": "psycinfo", "shape": "dot", "size": 15, "title": " Symptom: psycinfo\n Spectral Cluster: C3/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "course", "label": "course", "shape": "dot", "size": 15, "title": " Symptom: course\n Spectral Cluster: C7/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "related", "label": "related", "shape": "dot", "size": 24, "title": " Symptom: related\n Spectral Cluster: C7/7\n Connections: 4\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "suicidal", "label": "suicidal", "shape": "dot", "size": 36, "title": " Symptom: suicidal\n Spectral Cluster: C7/7\n Connections: 6\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "stigma", "label": "stigma", "shape": "dot", "size": 15, "title": " Symptom: stigma\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#F7DC6F", "font": {"color": "white"}, "id": "select", "label": "select", "shape": "dot", "size": 15, "title": " Symptom: select\n Spectral Cluster: C4/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "late", "label": "late", "shape": "dot", "size": 15, "title": " Symptom: late\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#F7DC6F", "font": {"color": "white"}, "id": "medication", "label": "medication", "shape": "dot", "size": 15, "title": " Symptom: medication\n Spectral Cluster: C4/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "wellbeing", "label": "wellbeing", "shape": "dot", "size": 15, "title": " Symptom: wellbeing\n Spectral Cluster: C1/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "behavior", "label": "behavior", "shape": "dot", "size": 60, "title": " Symptom: behavior\n Spectral Cluster: C7/7\n Connections: 10\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "member", "label": "member", "shape": "dot", "size": 15, "title": " Symptom: member\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "burnout", "label": "burnout", "shape": "dot", "size": 24, "title": " Symptom: burnout\n Spectral Cluster: C1/7\n Connections: 4\n Quality: -0.986"}, {"borderWidth": 2, "color": "#BB8FCE", "font": {"color": "white"}, "id": "hispanic", "label": "hispanic", "shape": "dot", "size": 15, "title": " Symptom: hispanic\n Spectral Cluster: C5/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "worry", "label": "worry", "shape": "dot", "size": 15, "title": " Symptom: worry\n Spectral Cluster: C7/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "depression", "label": "depression", "shape": "dot", "size": 84, "title": " Symptom: depression\n Spectral Cluster: C1/7\n Connections: 14\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "health", "label": "health", "shape": "dot", "size": 168, "title": " Symptom: health\n Spectral Cluster: C1/7\n Connections: 28\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "stress", "label": "stress", "shape": "dot", "size": 90, "title": " Symptom: stress\n Spectral Cluster: C1/7\n Connections: 15\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "insomnia", "label": "insomnia", "shape": "dot", "size": 18, "title": " Symptom: insomnia\n Spectral Cluster: C7/7\n Connections: 3\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "motivation", "label": "motivation", "shape": "dot", "size": 15, "title": " Symptom: motivation\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "comparison", "label": "comparison", "shape": "dot", "size": 24, "title": " Symptom: comparison\n Spectral Cluster: C1/7\n Connections: 4\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "expression", "label": "expression", "shape": "dot", "size": 15, "title": " Symptom: expression\n Spectral Cluster: C7/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "healthcare", "label": "healthcare", "shape": "dot", "size": 30, "title": " Symptom: healthcare\n Spectral Cluster: C1/7\n Connections: 5\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "support", "label": "support", "shape": "dot", "size": 60, "title": " Symptom: support\n Spectral Cluster: C1/7\n Connections: 10\n Quality: -0.986"}, {"borderWidth": 2, "color": "#4ECDC4", "font": {"color": "white"}, "id": "man", "label": "man", "shape": "dot", "size": 15, "title": " Symptom: man\n Spectral Cluster: C2/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#F7DC6F", "font": {"color": "white"}, "id": "involve", "label": "involve", "shape": "dot", "size": 18, "title": " Symptom: involve\n Spectral Cluster: C4/7\n Connections: 3\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "proportion", "label": "proportion", "shape": "dot", "size": 15, "title": " Symptom: proportion\n Spectral Cluster: C7/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "outcome", "label": "outcome", "shape": "dot", "size": 78, "title": " Symptom: outcome\n Spectral Cluster: C1/7\n Connections: 13\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "medical", "label": "medical", "shape": "dot", "size": 30, "title": " Symptom: medical\n Spectral Cluster: C1/7\n Connections: 5\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "worker", "label": "worker", "shape": "dot", "size": 36, "title": " Symptom: worker\n Spectral Cluster: C1/7\n Connections: 6\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "result", "label": "result", "shape": "dot", "size": 48, "title": " Symptom: result\n Spectral Cluster: C7/7\n Connections: 8\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "physical", "label": "physical", "shape": "dot", "size": 48, "title": " Symptom: physical\n Spectral Cluster: C1/7\n Connections: 8\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "drug", "label": "drug", "shape": "dot", "size": 15, "title": " Symptom: drug\n Spectral Cluster: C7/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "decision", "label": "decision", "shape": "dot", "size": 15, "title": " Symptom: decision\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "sedentary", "label": "sedentary", "shape": "dot", "size": 15, "title": " Symptom: sedentary\n Spectral Cluster: C7/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "acute", "label": "acute", "shape": "dot", "size": 24, "title": " Symptom: acute\n Spectral Cluster: C1/7\n Connections: 4\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "student", "label": "student", "shape": "dot", "size": 96, "title": " Symptom: student\n Spectral Cluster: C1/7\n Connections: 16\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "exacerbate", "label": "exacerbate", "shape": "dot", "size": 15, "title": " Symptom: exacerbate\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "comorbid", "label": "comorbid", "shape": "dot", "size": 15, "title": " Symptom: comorbid\n Spectral Cluster: C1/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "infrastructure", "label": "infrastructure", "shape": "dot", "size": 15, "title": " Symptom: infrastructure\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "disorder", "label": "disorder", "shape": "dot", "size": 90, "title": " Symptom: disorder\n Spectral Cluster: C1/7\n Connections: 15\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "condition", "label": "condition", "shape": "dot", "size": 36, "title": " Symptom: condition\n Spectral Cluster: C1/7\n Connections: 6\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "coping", "label": "coping", "shape": "dot", "size": 15, "title": " Symptom: coping\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "anxiety", "label": "anxiety", "shape": "dot", "size": 96, "title": " Symptom: anxiety\n Spectral Cluster: C1/7\n Connections: 16\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "press", "label": "press", "shape": "dot", "size": 15, "title": " Symptom: press\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#F7DC6F", "font": {"color": "white"}, "id": "initiative", "label": "initiative", "shape": "dot", "size": 15, "title": " Symptom: initiative\n Spectral Cluster: C4/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FFA07A", "font": {"color": "white"}, "id": "sensitivity", "label": "sensitivity", "shape": "dot", "size": 15, "title": " Symptom: sensitivity\n Spectral Cluster: C6/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "recommend", "label": "recommend", "shape": "dot", "size": 15, "title": " Symptom: recommend\n Spectral Cluster: C7/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "sexual", "label": "sexual", "shape": "dot", "size": 15, "title": " Symptom: sexual\n Spectral Cluster: C1/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#45B7D1", "font": {"color": "white"}, "id": "collection", "label": "collection", "shape": "dot", "size": 15, "title": " Symptom: collection\n Spectral Cluster: C3/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "disparity", "label": "disparity", "shape": "dot", "size": 15, "title": " Symptom: disparity\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "responsible", "label": "responsible", "shape": "dot", "size": 15, "title": " Symptom: responsible\n Spectral Cluster: C7/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#DDA0DD", "font": {"color": "white"}, "id": "cause", "label": "cause", "shape": "dot", "size": 18, "title": " Symptom: cause\n Spectral Cluster: C7/7\n Connections: 3\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "barrier", "label": "barrier", "shape": "dot", "size": 15, "title": " Symptom: barrier\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "organization", "label": "organization", "shape": "dot", "size": 15, "title": " Symptom: organization\n Spectral Cluster: C1/7\n Connections: 2\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "definition", "label": "definition", "shape": "dot", "size": 15, "title": " Symptom: definition\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 2, "color": "#F7DC6F", "font": {"color": "white"}, "id": "participant", "label": "participant", "shape": "dot", "size": 36, "title": " Symptom: participant\n Spectral Cluster: C4/7\n Connections: 6\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FFA07A", "font": {"color": "white"}, "id": "interpersonal", "label": "interpersonal", "shape": "dot", "size": 18, "title": " Symptom: interpersonal\n Spectral Cluster: C6/7\n Connections: 3\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "trauma", "label": "trauma", "shape": "dot", "size": 24, "title": " Symptom: trauma\n Spectral Cluster: C1/7\n Connections: 4\n Quality: -0.986"}, {"borderWidth": 2, "color": "#FF6B6B", "font": {"color": "white"}, "id": "fitness", "label": "fitness", "shape": "dot", "size": 15, "title": " Symptom: fitness\n Spectral Cluster: C1/7\n Connections: 1\n Quality: -0.986"}, {"borderWidth": 0, "color": "gold", "font": {"color": "white"}, "id": "INFO", "label": "INTERACTIVE CONTROLS", "shape": "box", "size": 25, "title": "\ud83d\uddb1\ufe0f Drag nodes | Hover for info | Physics button | Zoom/pan"}]);
+                  edges = new vis.DataSet([{"color": "black", "from": "resilience", "title": "Within-cluster symptom connection", "to": "health", "width": 4}, {"color": "black", "from": "resilience", "title": "Within-cluster symptom connection", "to": "support", "width": 4}, {"color": "black", "from": "resilience", "title": "Within-cluster symptom connection", "to": "stress", "width": 4}, {"color": "black", "from": "resilience", "title": "Within-cluster symptom connection", "to": "acute", "width": 4}, {"color": "black", "from": "isolation", "title": "Within-cluster symptom connection", "to": "physical", "width": 4}, {"color": "black", "from": "isolation", "title": "Within-cluster symptom connection", "to": "health", "width": 4}, {"color": "black", "from": "isolation", "title": "Within-cluster symptom connection", "to": "medical", "width": 4}, {"color": "black", "from": "fear", "title": "Within-cluster symptom connection", "to": "worry", "width": 4}, {"color": "black", "from": "fear", "title": "Within-cluster symptom connection", "to": "cause", "width": 4}, {"color": "gray", "dashes": true, "from": "fear", "title": "Bridge between symptom clusters", "to": "anxiety", "width": 1.5}, {"color": "black", "from": "instrument", "title": "Within-cluster symptom connection", "to": "result", "width": 4}, {"color": "black", "from": "type", "title": "Within-cluster symptom connection", "to": "medication", "width": 4}, {"color": "black", "from": "type", "title": "Within-cluster symptom connection", "to": "participant", "width": 4}, {"color": "gray", "dashes": true, "from": "type", "title": "Bridge between symptom clusters", "to": "support", "width": 1.5}, {"color": "gray", "dashes": true, "from": "therapy", "title": "Bridge between symptom clusters", "to": "depression", "width": 1.5}, {"color": "black", "from": "therapy", "title": "Within-cluster symptom connection", "to": "result", "width": 4}, {"color": "gray", "dashes": true, "from": "therapy", "title": "Bridge between symptom clusters", "to": "health", "width": 1.5}, {"color": "gray", "dashes": true, "from": "therapy", "title": "Bridge between symptom clusters", "to": "outcome", "width": 1.5}, {"color": "black", "from": "therapy", "title": "Within-cluster symptom connection", "to": "panic", "width": 4}, {"color": "gray", "dashes": true, "from": "characteristic", "title": "Bridge between symptom clusters", "to": "participant", "width": 1.5}, {"color": "black", "from": "characteristic", "title": "Within-cluster symptom connection", "to": "course", "width": 4}, {"color": "black", "from": "adjustment", "title": "Within-cluster symptom connection", "to": "stress", "width": 4}, {"color": "black", "from": "policy", "title": "Within-cluster symptom connection", "to": "acute", "width": 4}, {"color": "black", "from": "swedish", "title": "Within-cluster symptom connection", "to": "longitudinal", "width": 4}, {"color": "black", "from": "psycinfo", "title": "Within-cluster symptom connection", "to": "collection", "width": 4}, {"color": "gray", "dashes": true, "from": "related", "title": "Bridge between symptom clusters", "to": "interpersonal", "width": 1.5}, {"color": "black", "from": "suicidal", "title": "Within-cluster symptom connection", "to": "behavior", "width": 4}, {"color": "black", "from": "suicidal", "title": "Within-cluster symptom connection", "to": "characteristic", "width": 4}, {"color": "gray", "dashes": true, "from": "suicidal", "title": "Bridge between symptom clusters", "to": "man", "width": 1.5}, {"color": "black", "from": "suicidal", "title": "Within-cluster symptom connection", "to": "attempt", "width": 4}, {"color": "black", "from": "stigma", "title": "Within-cluster symptom connection", "to": "healthcare", "width": 4}, {"color": "black", "from": "select", "title": "Within-cluster symptom connection", "to": "participant", "width": 4}, {"color": "black", "from": "behavior", "title": "Within-cluster symptom connection", "to": "therapy", "width": 4}, {"color": "gray", "dashes": true, "from": "behavior", "title": "Bridge between symptom clusters", "to": "anxiety", "width": 1.5}, {"color": "gray", "dashes": true, "from": "behavior", "title": "Bridge between symptom clusters", "to": "student", "width": 1.5}, {"color": "gray", "dashes": true, "from": "behavior", "title": "Bridge between symptom clusters", "to": "health", "width": 1.5}, {"color": "gray", "dashes": true, "from": "behavior", "title": "Bridge between symptom clusters", "to": "stress", "width": 1.5}, {"color": "black", "from": "member", "title": "Within-cluster symptom connection", "to": "worker", "width": 4}, {"color": "black", "from": "burnout", "title": "Within-cluster symptom connection", "to": "health", "width": 4}, {"color": "gray", "dashes": true, "from": "burnout", "title": "Bridge between symptom clusters", "to": "insomnia", "width": 1.5}, {"color": "black", "from": "hispanic", "title": "Within-cluster symptom connection", "to": "white", "width": 4}, {"color": "black", "from": "depression", "title": "Within-cluster symptom connection", "to": "anxiety", "width": 4}, {"color": "black", "from": "depression", "title": "Within-cluster symptom connection", "to": "disorder", "width": 4}, {"color": "black", "from": "depression", "title": "Within-cluster symptom connection", "to": "stress", "width": 4}, {"color": "black", "from": "depression", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "black", "from": "depression", "title": "Within-cluster symptom connection", "to": "health", "width": 4}, {"color": "black", "from": "depression", "title": "Within-cluster symptom connection", "to": "policy", "width": 4}, {"color": "gray", "dashes": true, "from": "depression", "title": "Bridge between symptom clusters", "to": "related", "width": 1.5}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "outcome", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "worker", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "organization", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "anxiety", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "stress", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "condition", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "policy", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "support", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "wellbeing", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "medical", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "disorder", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "counseling", "width": 4}, {"color": "black", "from": "health", "title": "Within-cluster symptom connection", "to": "trauma", "width": 4}, {"color": "black", "from": "stress", "title": "Within-cluster symptom connection", "to": "disorder", "width": 4}, {"color": "black", "from": "stress", "title": "Within-cluster symptom connection", "to": "anxiety", "width": 4}, {"color": "black", "from": "stress", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "black", "from": "stress", "title": "Within-cluster symptom connection", "to": "burnout", "width": 4}, {"color": "gray", "dashes": true, "from": "stress", "title": "Bridge between symptom clusters", "to": "interpersonal", "width": 1.5}, {"color": "black", "from": "insomnia", "title": "Within-cluster symptom connection", "to": "related", "width": 4}, {"color": "black", "from": "motivation", "title": "Within-cluster symptom connection", "to": "physical", "width": 4}, {"color": "gray", "dashes": true, "from": "comparison", "title": "Bridge between symptom clusters", "to": "therapy", "width": 1.5}, {"color": "gray", "dashes": true, "from": "expression", "title": "Bridge between symptom clusters", "to": "comparison", "width": 1.5}, {"color": "black", "from": "healthcare", "title": "Within-cluster symptom connection", "to": "worker", "width": 4}, {"color": "black", "from": "healthcare", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "gray", "dashes": true, "from": "healthcare", "title": "Bridge between symptom clusters", "to": "characteristic", "width": 1.5}, {"color": "black", "from": "support", "title": "Within-cluster symptom connection", "to": "stress", "width": 4}, {"color": "black", "from": "support", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "black", "from": "support", "title": "Within-cluster symptom connection", "to": "physical", "width": 4}, {"color": "black", "from": "man", "title": "Within-cluster symptom connection", "to": "longitudinal", "width": 4}, {"color": "black", "from": "involve", "title": "Within-cluster symptom connection", "to": "participant", "width": 4}, {"color": "black", "from": "proportion", "title": "Within-cluster symptom connection", "to": "related", "width": 4}, {"color": "black", "from": "proportion", "title": "Within-cluster symptom connection", "to": "cause", "width": 4}, {"color": "black", "from": "outcome", "title": "Within-cluster symptom connection", "to": "anxiety", "width": 4}, {"color": "gray", "dashes": true, "from": "outcome", "title": "Bridge between symptom clusters", "to": "result", "width": 1.5}, {"color": "black", "from": "outcome", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "gray", "dashes": true, "from": "outcome", "title": "Bridge between symptom clusters", "to": "instrument", "width": 1.5}, {"color": "black", "from": "outcome", "title": "Within-cluster symptom connection", "to": "disorder", "width": 4}, {"color": "black", "from": "outcome", "title": "Within-cluster symptom connection", "to": "acute", "width": 4}, {"color": "black", "from": "outcome", "title": "Within-cluster symptom connection", "to": "trauma", "width": 4}, {"color": "black", "from": "outcome", "title": "Within-cluster symptom connection", "to": "comparison", "width": 4}, {"color": "black", "from": "outcome", "title": "Within-cluster symptom connection", "to": "counseling", "width": 4}, {"color": "black", "from": "outcome", "title": "Within-cluster symptom connection", "to": "late", "width": 4}, {"color": "black", "from": "medical", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "black", "from": "medical", "title": "Within-cluster symptom connection", "to": "condition", "width": 4}, {"color": "black", "from": "medical", "title": "Within-cluster symptom connection", "to": "worker", "width": 4}, {"color": "black", "from": "worker", "title": "Within-cluster symptom connection", "to": "anxiety", "width": 4}, {"color": "black", "from": "result", "title": "Within-cluster symptom connection", "to": "characteristic", "width": 4}, {"color": "black", "from": "result", "title": "Within-cluster symptom connection", "to": "behavior", "width": 4}, {"color": "black", "from": "result", "title": "Within-cluster symptom connection", "to": "fear", "width": 4}, {"color": "black", "from": "physical", "title": "Within-cluster symptom connection", "to": "health", "width": 4}, {"color": "black", "from": "physical", "title": "Within-cluster symptom connection", "to": "condition", "width": 4}, {"color": "black", "from": "physical", "title": "Within-cluster symptom connection", "to": "sexual", "width": 4}, {"color": "black", "from": "physical", "title": "Within-cluster symptom connection", "to": "wellbeing", "width": 4}, {"color": "black", "from": "drug", "title": "Within-cluster symptom connection", "to": "result", "width": 4}, {"color": "black", "from": "decision", "title": "Within-cluster symptom connection", "to": "policy", "width": 4}, {"color": "black", "from": "sedentary", "title": "Within-cluster symptom connection", "to": "behavior", "width": 4}, {"color": "black", "from": "student", "title": "Within-cluster symptom connection", "to": "policy", "width": 4}, {"color": "black", "from": "student", "title": "Within-cluster symptom connection", "to": "comparison", "width": 4}, {"color": "black", "from": "exacerbate", "title": "Within-cluster symptom connection", "to": "condition", "width": 4}, {"color": "black", "from": "comorbid", "title": "Within-cluster symptom connection", "to": "condition", "width": 4}, {"color": "black", "from": "comorbid", "title": "Within-cluster symptom connection", "to": "disorder", "width": 4}, {"color": "black", "from": "infrastructure", "title": "Within-cluster symptom connection", "to": "acute", "width": 4}, {"color": "gray", "dashes": true, "from": "disorder", "title": "Bridge between symptom clusters", "to": "fear", "width": 1.5}, {"color": "black", "from": "disorder", "title": "Within-cluster symptom connection", "to": "anxiety", "width": 4}, {"color": "black", "from": "disorder", "title": "Within-cluster symptom connection", "to": "support", "width": 4}, {"color": "gray", "dashes": true, "from": "disorder", "title": "Bridge between symptom clusters", "to": "course", "width": 1.5}, {"color": "black", "from": "disorder", "title": "Within-cluster symptom connection", "to": "burnout", "width": 4}, {"color": "gray", "dashes": true, "from": "disorder", "title": "Bridge between symptom clusters", "to": "suicidal", "width": 1.5}, {"color": "black", "from": "condition", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "gray", "dashes": true, "from": "anxiety", "title": "Bridge between symptom clusters", "to": "insomnia", "width": 1.5}, {"color": "black", "from": "anxiety", "title": "Within-cluster symptom connection", "to": "coping", "width": 4}, {"color": "black", "from": "anxiety", "title": "Within-cluster symptom connection", "to": "trauma", "width": 4}, {"color": "gray", "dashes": true, "from": "anxiety", "title": "Bridge between symptom clusters", "to": "suicidal", "width": 1.5}, {"color": "black", "from": "press", "title": "Within-cluster symptom connection", "to": "student", "width": 4}, {"color": "black", "from": "initiative", "title": "Within-cluster symptom connection", "to": "involve", "width": 4}, {"color": "black", "from": "recommend", "title": "Within-cluster symptom connection", "to": "behavior", "width": 4}, {"color": "gray", "dashes": true, "from": "collection", "title": "Bridge between symptom clusters", "to": "instrument", "width": 1.5}, {"color": "black", "from": "disparity", "title": "Within-cluster symptom connection", "to": "sexual", "width": 4}, {"color": "black", "from": "responsible", "title": "Within-cluster symptom connection", "to": "fear", "width": 4}, {"color": "black", "from": "cause", "title": "Within-cluster symptom connection", "to": "panic", "width": 4}, {"color": "black", "from": "barrier", "title": "Within-cluster symptom connection", "to": "health", "width": 4}, {"color": "black", "from": "organization", "title": "Within-cluster symptom connection", "to": "depression", "width": 4}, {"color": "black", "from": "definition", "title": "Within-cluster symptom connection", "to": "disorder", "width": 4}, {"color": "black", "from": "interpersonal", "title": "Within-cluster symptom connection", "to": "sensitivity", "width": 4}, {"color": "black", "from": "trauma", "title": "Within-cluster symptom connection", "to": "physical", "width": 4}, {"color": "black", "from": "fitness", "title": "Within-cluster symptom connection", "to": "outcome", "width": 4}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"forceAtlas2Based": {"gravitationalConstant": -4000, "centralGravity": 0.25, "springLength": 180, "springConstant": 0.08, "damping": 0.6}, "minVelocity": 1}, "smooth": "continuous"};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
